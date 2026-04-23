@@ -1,23 +1,30 @@
 {
-    "name": "wheels-legacy-adapter",
-    "description": "Backward compatibility adapter for migrating Wheels 3.x applications to 4.0. Provides deprecation logging, API shims, and a migration scanner.",
-    "homepage": "https://github.com/wheels-dev/wheels-legacy-adapter",
-    "documentation": "https://wheels.dev/packages/wheels-legacy-adapter",
-    "license": "Apache-2.0",
-    "maintainers": ["@bpamiri"],
-    "tags": ["migration", "upgrade", "compatibility", "3x"],
-    "source": {
-        "type": "github",
-        "repo": "wheels-dev/wheels-legacy-adapter"
-    },
-    "versions": [
-        {
-            "version": "1.0.0",
-            "publishedAt": "2026-04-23T00:00:00Z",
-            "wheelsVersion": ">=4.0",
-            "sourceTag": "v1.0.0",
-            "tarball": null,
-            "sha256": null
-        }
-    ]
+  "name": "wheels-legacy-adapter",
+  "description": "Backward compatibility adapter for migrating Wheels 3.x applications to 4.0. Provides deprecation logging, API shims, and a migration scanner.",
+  "homepage": "https://github.com/wheels-dev/wheels-legacy-adapter",
+  "documentation": "https://wheels.dev/packages/wheels-legacy-adapter",
+  "license": "Apache-2.0",
+  "maintainers": [
+    "@bpamiri"
+  ],
+  "tags": [
+    "migration",
+    "upgrade",
+    "compatibility",
+    "3x"
+  ],
+  "source": {
+    "type": "github",
+    "repo": "wheels-dev/wheels-legacy-adapter"
+  },
+  "versions": [
+    {
+      "version": "1.0.0",
+      "publishedAt": "2026-04-23T00:00:00Z",
+      "wheelsVersion": ">=4.0",
+      "sourceTag": "v1.0.0",
+      "tarball": "https://github.com/wheels-dev/wheels-packages/releases/download/wheels-legacy-adapter-1.0.0/wheels-legacy-adapter-1.0.0.tar.gz",
+      "sha256": "4e17cb524b1343e2eef1a52c215581d161585c2e061543f2de3079b3dd172790"
+    }
+  ]
 }
