@@ -13,11 +13,22 @@ packages/
   wheels-basecoat/
   wheels-legacy-adapter/
 schema/
-  manifest.schema.json  ← JSONSchema, CI-enforced
+  manifest.schema.json         ← JSONSchema used on PRs (nullable tarball/sha256)
+  manifest.strict.schema.json  ← JSONSchema used on main (tarball/sha256 required)
 .github/workflows/
-  validate.yml          ← runs on every PR
-  mirror-tarball.yml    ← packages + uploads release asset on merge (Phase 2)
+  validate.yml          ← runs on every PR and on push to main
+  mirror-tarball.yml    ← packages + uploads release asset on PR merge
 ```
+
+## How distribution works
+
+1. Author opens a PR adding or appending a version entry with `tarball` and `sha256` set to `null`.
+2. `validate.yml` checks the permissive schema, name uniqueness, that `source.repo` + `sourceTag` resolve, and that the tagged source passes the file-type allowlist + 10 MB size cap.
+3. Maintainer reviews and merges.
+4. `mirror-tarball.yml` fires: clones `source.repo` at `sourceTag`, produces a deterministic tarball (`tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner | gzip -n`), uploads it as a GH Release asset at tag `<name>-<version>`, computes sha256, and bot-commits both values back into the manifest.
+5. The strict-schema job on `main` re-validates — if the mirror didn't populate both fields, this job fails and surfaces the drift immediately.
+
+The mirror workflow can also be triggered manually (`workflow_dispatch`) to backfill any version entries left as `null` across the registry.
 
 ## How users install packages
 
