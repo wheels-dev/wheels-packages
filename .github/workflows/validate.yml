@@ -35,6 +35,35 @@ jobs:
           done
           exit $FAIL
 
+  strict-main:
+    name: Strict schema (tarball + sha256 required)
+    # Runs only on main. PRs submit with null tarball/sha256; the mirror
+    # workflow populates them post-merge, after which this re-run on main
+    # enforces that every version entry is fully materialized.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install ajv-cli
+        run: npm install -g ajv-cli ajv-formats
+
+      - name: Validate every manifest against strict schema
+        run: |
+          set -euo pipefail
+          FAIL=0
+          for manifest in packages/*/manifest.json; do
+              echo "Strict-validating $manifest"
+              ajv validate --spec=draft2020 -c ajv-formats \
+                -s schema/manifest.strict.schema.json \
+                -d "$manifest" --strict=false || FAIL=1
+          done
+          exit $FAIL
+
   structure:
     name: Directory + name consistency
     runs-on: ubuntu-latest

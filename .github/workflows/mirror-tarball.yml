@@ -1,19 +1,156 @@
 name: mirror-tarball
 
-# Phase 2 workflow — not yet implemented. Scaffolded so validate.yml can
-# reference the file path and the registry README can point at it.
-# When implemented, this will run on PR merge:
-#   - clone source.repo at sourceTag
-#   - produce deterministic tarball (tar --sort=name --mtime=@0)
-#   - upload as GH Release asset on wheels-packages
-#   - compute sha256
-#   - commit tarball URL + sha256 back into the manifest
+# Packages source repos into deterministic tarballs, uploads them as GH Release
+# assets on this registry, and commits tarball URL + sha256 back into the
+# corresponding manifest entry.
+#
+# Triggers:
+#   - pull_request.closed on packages/**/manifest.json — processes only the
+#     versions added/modified by the PR where tarball is still null.
+#   - workflow_dispatch — scans every manifest and processes any version entry
+#     where tarball is null (backfill mode).
+#
+# Determinism contract:
+#   tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner | gzip -n
+#   Strips all filesystem/user/time variance so sha256 is reproducible.
+#
+# Release tag convention: <name>-<version>, asset name: <name>-<version>.tar.gz
 
 on:
+  pull_request:
+    types: [closed]
+    paths:
+      - "packages/**/manifest.json"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
+concurrency:
+  group: mirror-tarball
+  cancel-in-progress: false
+
 jobs:
-  noop:
+  mirror:
+    name: Mirror pending versions
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+       github.event.pull_request.base.ref == 'main')
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REGISTRY_REPO: ${{ github.repository }}
+      EVENT_NAME: ${{ github.event_name }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
-      - run: echo "Phase 2 — not yet implemented. See the registry design spec."
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Determine target manifests
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            echo "Resolving manifests changed by PR #${PR_NUMBER}"
+            gh pr view "$PR_NUMBER" \
+              --repo "$REGISTRY_REPO" \
+              --json files \
+              --jq '.files[].path' \
+              | grep -E '^packages/[^/]+/manifest\.json$' \
+              > /tmp/targets.txt || true
+          else
+            echo "Workflow dispatch — scanning every manifest (backfill mode)"
+            ls packages/*/manifest.json > /tmp/targets.txt
+          fi
+          echo "---- targets ----"
+          cat /tmp/targets.txt || true
+          echo "-----------------"
+
+      - name: Mirror pending versions
+        run: |
+          set -euo pipefail
+          REGISTRY_URL="https://github.com/${REGISTRY_REPO}/releases/download"
+          touched=()
+
+          while IFS= read -r manifest; do
+            [ -z "$manifest" ] && continue
+            [ -f "$manifest" ] || { echo "skip (missing): $manifest"; continue; }
+
+            name=$(jq -r .name "$manifest")
+            repo=$(jq -r .source.repo "$manifest")
+            pending=$(jq -c '.versions | to_entries[] | select(.value.tarball == null)' "$manifest")
+            [ -z "$pending" ] && { echo "no pending versions for $name"; continue; }
+
+            changed=0
+            while IFS= read -r entry; do
+              [ -z "$entry" ] && continue
+              idx=$(echo "$entry" | jq -r .key)
+              version=$(echo "$entry" | jq -r .value.version)
+              source_tag=$(echo "$entry" | jq -r .value.sourceTag)
+              release_tag="${name}-${version}"
+              asset_name="${name}-${version}.tar.gz"
+
+              echo "==> Mirroring ${name}@${version} from ${repo}#${source_tag}"
+
+              work=$(mktemp -d)
+              gh repo clone "$repo" "$work/src" -- --depth=1 --branch="$source_tag" --quiet
+              rm -rf "$work/src/.git"
+              mv "$work/src" "$work/${name}"
+
+              # Deterministic tar + gzip (strip names, times, ownership)
+              tar --sort=name \
+                  --mtime='@0' \
+                  --owner=0 --group=0 --numeric-owner \
+                  -cf - -C "$work" "${name}" \
+                | gzip -n > "${asset_name}"
+
+              sha=$(sha256sum "${asset_name}" | awk '{print $1}')
+              echo "    sha256=${sha}"
+
+              if ! gh release view "$release_tag" --repo "$REGISTRY_REPO" >/dev/null 2>&1; then
+                notes="Deterministic mirror of ${repo}@${source_tag}. Built by .github/workflows/mirror-tarball.yml. sha256: ${sha}"
+                gh release create "$release_tag" \
+                  --repo "$REGISTRY_REPO" \
+                  --title "${name} v${version}" \
+                  --notes "$notes" \
+                  --target main
+              fi
+              gh release upload "$release_tag" "${asset_name}" \
+                --repo "$REGISTRY_REPO" --clobber
+
+              tarball_url="${REGISTRY_URL}/${release_tag}/${asset_name}"
+
+              tmp_manifest=$(mktemp)
+              jq --arg i "$idx" --arg t "$tarball_url" --arg s "$sha" \
+                '.versions[($i|tonumber)].tarball = $t
+                 | .versions[($i|tonumber)].sha256 = $s' \
+                "$manifest" > "$tmp_manifest"
+              mv "$tmp_manifest" "$manifest"
+
+              rm -f "${asset_name}"
+              rm -rf "$work"
+              changed=1
+            done <<< "$pending"
+
+            if [ "$changed" = "1" ]; then
+              touched+=("$(basename "$(dirname "$manifest")")")
+              git add "$manifest"
+            fi
+          done < /tmp/targets.txt
+
+          if git diff --cached --quiet; then
+            echo "No manifest changes to commit"
+          else
+            IFS=', '; joined="${touched[*]}"; unset IFS
+            git commit -m "chore(mirror): populate tarball + sha256 for ${joined}"
+            git push origin HEAD:main
+          fi
