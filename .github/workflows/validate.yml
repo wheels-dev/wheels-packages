@@ -1,0 +1,128 @@
+name: validate
+
+on:
+  pull_request:
+    paths:
+      - "packages/**"
+      - "schema/**"
+  push:
+    branches: [main]
+    paths:
+      - "packages/**"
+      - "schema/**"
+
+jobs:
+  schema:
+    name: JSONSchema validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install ajv-cli
+        run: npm install -g ajv-cli ajv-formats
+
+      - name: Validate every manifest against schema
+        run: |
+          set -euo pipefail
+          FAIL=0
+          for manifest in packages/*/manifest.json; do
+              echo "Validating $manifest"
+              ajv validate --spec=draft2020 -c ajv-formats -s schema/manifest.schema.json -d "$manifest" --strict=false || FAIL=1
+          done
+          exit $FAIL
+
+  structure:
+    name: Directory + name consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check name matches directory
+        run: |
+          set -euo pipefail
+          FAIL=0
+          for manifest in packages/*/manifest.json; do
+              dir=$(basename "$(dirname "$manifest")")
+              name=$(jq -r .name "$manifest")
+              if [ "$dir" != "$name" ]; then
+                  echo "MISMATCH: directory '$dir' but manifest.name '$name'"
+                  FAIL=1
+              fi
+          done
+          exit $FAIL
+
+      - name: Check name uniqueness
+        run: |
+          set -euo pipefail
+          duplicates=$(jq -r .name packages/*/manifest.json | sort | uniq -d)
+          if [ -n "$duplicates" ]; then
+              echo "Duplicate names: $duplicates"
+              exit 1
+          fi
+
+  source-resolvable:
+    name: source.repo + sourceTag resolve on GitHub
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify each source.repo and its tags exist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          FAIL=0
+          for manifest in packages/*/manifest.json; do
+              repo=$(jq -r .source.repo "$manifest")
+              echo "Checking $repo ..."
+              if ! gh repo view "$repo" >/dev/null 2>&1; then
+                  echo "MISSING REPO: $repo"
+                  FAIL=1
+                  continue
+              fi
+              jq -r '.versions[].sourceTag' "$manifest" | while read -r tag; do
+                  if ! gh api "repos/$repo/git/refs/tags/$tag" >/dev/null 2>&1; then
+                      echo "MISSING TAG: $repo#$tag"
+                      exit 1
+                  fi
+              done || FAIL=1
+          done
+          exit $FAIL
+
+  content-safety:
+    name: File-type allowlist + size cap
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clone each source tag & scan
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          ALLOWED='\.cfc$|\.cfm$|\.cfml$|\.md$|\.json$|\.js$|\.mjs$|\.ts$|\.css$|\.scss$|\.html$|\.txt$|\.sql$|\.yml$|\.yaml$|\.gitkeep$|LICENSE$|CHANGELOG$'
+          MAX_BYTES=$((10 * 1024 * 1024))
+          FAIL=0
+          for manifest in packages/*/manifest.json; do
+              repo=$(jq -r .source.repo "$manifest")
+              latest_tag=$(jq -r '.versions[-1].sourceTag' "$manifest")
+              echo "Scanning $repo@$latest_tag"
+              tmp=$(mktemp -d)
+              gh repo clone "$repo" "$tmp/src" -- --depth=1 --branch="$latest_tag"
+              # Size cap
+              size=$(du -sb "$tmp/src" --exclude=.git | awk '{print $1}')
+              if [ "$size" -gt "$MAX_BYTES" ]; then
+                  echo "OVER CAP: $repo = $size bytes"
+                  FAIL=1
+              fi
+              # File-type allowlist
+              disallowed=$(find "$tmp/src" -type f -not -path "*/.git/*" | grep -vE "$ALLOWED" || true)
+              if [ -n "$disallowed" ]; then
+                  echo "DISALLOWED FILE TYPES in $repo:"
+                  echo "$disallowed"
+                  FAIL=1
+              fi
+              rm -rf "$tmp"
+          done
+          exit $FAIL

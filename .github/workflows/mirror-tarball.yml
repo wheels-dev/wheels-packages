@@ -1,0 +1,19 @@
+name: mirror-tarball
+
+# Phase 2 workflow — not yet implemented. Scaffolded so validate.yml can
+# reference the file path and the registry README can point at it.
+# When implemented, this will run on PR merge:
+#   - clone source.repo at sourceTag
+#   - produce deterministic tarball (tar --sort=name --mtime=@0)
+#   - upload as GH Release asset on wheels-packages
+#   - compute sha256
+#   - commit tarball URL + sha256 back into the manifest
+
+on:
+  workflow_dispatch:
+
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Phase 2 — not yet implemented. See the registry design spec."

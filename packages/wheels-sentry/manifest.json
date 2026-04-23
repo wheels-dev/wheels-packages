@@ -1,0 +1,23 @@
+{
+    "name": "wheels-sentry",
+    "description": "Sentry error tracking for Wheels with framework-aware context enrichment.",
+    "homepage": "https://github.com/wheels-dev/wheels-sentry",
+    "documentation": "https://wheels.dev/packages/wheels-sentry",
+    "license": "Apache-2.0",
+    "maintainers": ["@bpamiri"],
+    "tags": ["monitoring", "errors", "observability"],
+    "source": {
+        "type": "github",
+        "repo": "wheels-dev/wheels-sentry"
+    },
+    "versions": [
+        {
+            "version": "1.0.0",
+            "publishedAt": "2026-04-23T00:00:00Z",
+            "wheelsVersion": ">=4.0",
+            "sourceTag": "v1.0.0",
+            "tarball": null,
+            "sha256": null
+        }
+    ]
+}
