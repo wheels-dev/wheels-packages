@@ -31,8 +31,8 @@
       "publishedAt": "2026-04-24T00:00:00Z",
       "wheelsVersion": ">=4.0",
       "sourceTag": "v1.0.1",
-      "tarball": null,
-      "sha256": null
+      "tarball": "https://github.com/wheels-dev/wheels-packages/releases/download/wheels-hotwire-1.0.1/wheels-hotwire-1.0.1.tar.gz",
+      "sha256": "b6ed84208ae1a2addff3293cd4bd75ef28882391173506e16e82467764622fa2"
     }
   ]
 }
