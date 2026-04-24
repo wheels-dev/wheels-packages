@@ -10,10 +10,16 @@ on:
     paths:
       - "packages/**"
       - "schema/**"
+  # Fire the strict-schema job only after mirror-tarball has populated the
+  # freshly-merged null entries. See the strict-main job comment for details.
+  workflow_run:
+    workflows: ["mirror-tarball"]
+    types: [completed]
 
 jobs:
   schema:
     name: JSONSchema validation
+    if: github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,13 +43,22 @@ jobs:
 
   strict-main:
     name: Strict schema (tarball + sha256 required)
-    # Runs only on main. PRs submit with null tarball/sha256; the mirror
-    # workflow populates them post-merge, after which this re-run on main
-    # enforces that every version entry is fully materialized.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Runs only after mirror-tarball completes on main. Merge PRs submit with
+    # null tarball/sha256; mirror-tarball populates them and pushes a backfill
+    # commit. That bot-push doesn't re-trigger push-driven workflows (default
+    # GITHUB_TOKEN behavior), so we use workflow_run to re-enter here and
+    # enforce that every version entry is fully materialized.
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Explicit main checkout — default on workflow_run triggers is the
+          # triggering workflow's head_sha (pre-mirror), which still has nulls.
+          ref: main
 
       - uses: actions/setup-node@v4
         with:
@@ -66,6 +81,7 @@ jobs:
 
   structure:
     name: Directory + name consistency
+    if: github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -94,6 +110,7 @@ jobs:
 
   source-resolvable:
     name: source.repo + sourceTag resolve on GitHub
+    if: github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -122,6 +139,7 @@ jobs:
 
   content-safety:
     name: File-type allowlist + size cap
+    if: github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
