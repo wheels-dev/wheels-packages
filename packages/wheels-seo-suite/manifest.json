@@ -25,8 +25,8 @@
       "publishedAt": "2026-04-24T00:00:00Z",
       "wheelsVersion": ">=4.0",
       "sourceTag": "v2.0.0",
-      "tarball": null,
-      "sha256": null
+      "tarball": "https://github.com/wheels-dev/wheels-packages/releases/download/wheels-seo-suite-2.0.0/wheels-seo-suite-2.0.0.tar.gz",
+      "sha256": "a64d207602598cbbdf89baedccb44a48261dcff7600686fc2c1157766393c095"
     }
   ]
 }
