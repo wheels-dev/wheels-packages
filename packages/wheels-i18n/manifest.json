@@ -23,8 +23,8 @@
       "publishedAt": "2026-04-24T00:00:00Z",
       "wheelsVersion": ">=4.0",
       "sourceTag": "v2.0.0",
-      "tarball": null,
-      "sha256": null
+      "tarball": "https://github.com/wheels-dev/wheels-packages/releases/download/wheels-i18n-2.0.0/wheels-i18n-2.0.0.tar.gz",
+      "sha256": "e2307bba40de3a4d495d0a229110b6cc080d29691769d224030ee9e70c85fabb"
     }
   ]
 }
