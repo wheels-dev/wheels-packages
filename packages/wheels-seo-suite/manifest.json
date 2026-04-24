@@ -1,0 +1,32 @@
+{
+  "name": "wheels-seo-suite",
+  "description": "Complete SEO solution for Wheels apps — meta tags, Open Graph, Twitter Cards, canonical URLs, XML sitemaps, robots.txt, and an in-page debug/admin panel.",
+  "homepage": "https://github.com/wheels-dev/wheels-seo-suite",
+  "documentation": "https://wheels.dev/packages/wheels-seo-suite",
+  "license": "MIT",
+  "maintainers": [
+    "@bpamiri"
+  ],
+  "tags": [
+    "seo",
+    "meta-tags",
+    "open-graph",
+    "sitemap",
+    "canonical",
+    "robots"
+  ],
+  "source": {
+    "type": "github",
+    "repo": "wheels-dev/wheels-seo-suite"
+  },
+  "versions": [
+    {
+      "version": "2.0.0",
+      "publishedAt": "2026-04-24T00:00:00Z",
+      "wheelsVersion": ">=4.0",
+      "sourceTag": "v2.0.0",
+      "tarball": null,
+      "sha256": null
+    }
+  ]
+}
