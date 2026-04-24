@@ -52,3 +52,17 @@ Maintainers look at:
 ## Getting help
 
 Open an issue on this repo or ping `#wheels-packages` on Discord.
+
+## Site rebuild trigger
+
+Merging a PR that changes `packages/**` or `schema/**` on `main` automatically
+rebuilds [packages.wheels.dev](https://packages.wheels.dev) via a
+`repository_dispatch` event fired at `wheels-dev/wheels`. The trigger is
+implemented in [`.github/workflows/notify-site.yml`](.github/workflows/notify-site.yml)
+and requires a repository secret named `NOTIFY_WHEELS_TOKEN` — a fine-grained
+PAT scoped to `wheels-dev/wheels` with `contents: write`.
+
+If a registry merge does not rebuild the site within a few minutes:
+1. Check the `Notify wheels.dev site` workflow run in this repo's Actions tab.
+2. If it succeeded, check the `Deploy static sites` workflow in `wheels-dev/wheels`.
+3. If the notify workflow failed with a 401/403, the PAT has likely expired — rotate and update the secret.

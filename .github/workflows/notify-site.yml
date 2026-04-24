@@ -1,0 +1,21 @@
+name: Notify wheels.dev site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/**'
+      - 'schema/**'
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fire repository_dispatch at wheels-dev/wheels
+        env:
+          GH_TOKEN: ${{ secrets.NOTIFY_WHEELS_TOKEN }}
+        run: |
+          gh api repos/wheels-dev/wheels/dispatches \
+            --method POST \
+            --field event_type=registry-updated \
+            --field "client_payload[source_commit]=${GITHUB_SHA}"
