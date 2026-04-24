@@ -1,0 +1,30 @@
+{
+  "name": "wheels-i18n",
+  "description": "Internationalization (i18n) package for Wheels — JSON-file or database-backed translations with pluralization and parameter interpolation.",
+  "homepage": "https://github.com/wheels-dev/wheels-i18n",
+  "documentation": "https://wheels.dev/packages/wheels-i18n",
+  "license": "MIT",
+  "maintainers": [
+    "@bpamiri"
+  ],
+  "tags": [
+    "i18n",
+    "localization",
+    "translation",
+    "internationalization"
+  ],
+  "source": {
+    "type": "github",
+    "repo": "wheels-dev/wheels-i18n"
+  },
+  "versions": [
+    {
+      "version": "2.0.0",
+      "publishedAt": "2026-04-24T00:00:00Z",
+      "wheelsVersion": ">=4.0",
+      "sourceTag": "v2.0.0",
+      "tarball": null,
+      "sha256": null
+    }
+  ]
+}
