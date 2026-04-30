@@ -55,8 +55,8 @@
       "publishedAt": "2026-04-30T00:00:00Z",
       "wheelsVersion": ">=4.0",
       "sourceTag": "v1.0.4",
-      "tarball": null,
-      "sha256": null
+      "tarball": "https://github.com/wheels-dev/wheels-packages/releases/download/wheels-basecoat-1.0.4/wheels-basecoat-1.0.4.tar.gz",
+      "sha256": "2e9ae703dc8ba980cc5a988509d136348f46f25fe97860253157d786308b3e0d"
     }
   ]
 }
