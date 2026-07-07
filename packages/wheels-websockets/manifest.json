@@ -23,8 +23,8 @@
       "publishedAt": "2026-07-06T00:00:00Z",
       "wheelsVersion": ">=4.0",
       "sourceTag": "v0.2.0",
-      "tarball": null,
-      "sha256": null
+      "tarball": "https://github.com/wheels-dev/wheels-packages/releases/download/wheels-websockets-0.2.0/wheels-websockets-0.2.0.tar.gz",
+      "sha256": "9c709379b7233f1c5374ad6e9b64da2b83ecca83e08fe74a27e5b09d0b6f7406"
     }
   ]
 }
